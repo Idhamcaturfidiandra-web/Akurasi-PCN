@@ -514,14 +514,20 @@ var P = (function () {
   function mv(aoa) {
     var H = findHead(aoa, ["Item No", "To Storage Location", "Moved Qty"]); if (!H) return null;
     var h = H.h, t = titleText(aoa, H.i), c = function (n) { return col(h, n); };
-    var C = {dt: c("Date"), tm: c("Time"), it: c("Item No"), nm: c("Item Description"), fr: c("From Storage Location"), to: c("To Storage Location"), q: c("Moved Qty"), tk: c("Task"), us: c("Moving By User")};
+    function c2() { for (var i = 0; i < arguments.length; i++) { var x = c(arguments[i]); if (x >= 0) return x; } return -1; }
+    var C = {dt: c("Date"), tm: c("Time"), it: c("Item No"), nm: c("Item Description"), fr: c2("From Storage Location", "From Storage Location Id", "From Location"), to: c2("To Storage Location", "To Storage Location Id", "To Location"), q: c("Moved Qty"), tk: c("Task"), us: c("Moving By User")};
+    /* sel gabungan (merge) di Excel: nilai bisa jatuh di kolom kosong sebelah kanan judul -> ambil yang terisi */
+    function span(i) { var a = []; if (i < 0) return a; a.push(i); for (var k = i + 1; k < h.length + 3 && !h[k]; k++) a.push(k); return a; }
+    var SF = span(C.fr), ST = span(C.to);
+    function pick(r, S) { for (var k = 0; k < S.length; k++) { var v = norm(r[S[k]]); if (v) return v; } return ""; }
     var rows = [];
     for (var j = H.i + 1; j < aoa.length; j++) {
       var r = aoa[j] || [], it = norm(r[C.it]); if (!it) continue;
-      rows.push([dmy(r[C.dt]), norm(r[C.tm]), it, norm(r[C.nm]), norm(r[C.fr]), norm(r[C.to]), r3(num(r[C.q])), norm(r[C.tk]), norm(r[C.us]).replace(/@mitra10\.com$/i, "")]);
+      rows.push([dmy(r[C.dt]), norm(r[C.tm]), it, norm(r[C.nm]), pick(r, SF), pick(r, ST), r3(num(r[C.q])), norm(r[C.tk]), norm(r[C.us]).replace(/@mitra10\.com$/i, "")]);
     }
     var per = t.match(/From:\s*(\d{4}-\d{2}-\d{2})\s*To:\s*(\d{4}-\d{2}-\d{2})/i);
-    return {kind: "mv", rows: rows, info: {pulled: pulled(t), from: per ? per[1] : "", to: per ? per[2] : ""}};
+    var nf = rows.filter(function (x) { return x[4]; }).length;
+    return {kind: "mv", rows: rows, info: {pulled: pulled(t), from: per ? per[1] : "", to: per ? per[2] : "", noFrom: rows.length > 0 && nf === 0}};
   }
   function detect(aoa) { return wn(aoa) || cc(aoa) || sp(aoa) || mv(aoa) || nt(aoa) || ls(aoa) || bl(aoa); }
   /* CSV ; (Sales by Salesperson) -> array of arrays */
@@ -1126,7 +1132,7 @@ if (typeof module !== "undefined") module.exports = P;
         r.saved = nowS();
         if (CLOUD) { try { await cloudPut(r, function (a, b) { msg.textContent = "Menyimpan " + KN[r.kind] + " ke database online… " + a + "/" + b; }); }
           catch (e) { if (e.code === "pin") setPin(""); out.push("✕ " + KN[r.kind] + " (" + f.name + "): gagal disimpan ke database online, " + e.message + ". Data tidak diubah, silakan upload ulang."); continue; } }
-        RAW[r.kind] = r; await idbPut(r.kind, r); out.push("✓ " + KN[r.kind] + ": " + fn(r.rows.length) + " baris (" + f.name + ")" + note + (CLOUD ? " · tersimpan online" : "")); }
+        RAW[r.kind] = r; await idbPut(r.kind, r); out.push("✓ " + KN[r.kind] + ": " + fn(r.rows.length) + " baris (" + f.name + ")" + note + (r.kind === "mv" && r.info.noFrom ? " ⚠ kolom From Storage Location kosong semua: From TRANSD / OV01 / OV02 tidak bisa dihitung, cek file report" : "") + (CLOUD ? " · tersimpan online" : "")); }
       catch (e) { out.push("✕ " + f.name + ": " + (e && e.message || "gagal dibaca")); } }
     build(); renderHead(); render();
     msg.className = "msg " + (out.some(function (x) { return x[0] === "✕"; }) ? "err" : "ok"); msg.textContent = out.join("\n");
