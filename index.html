@@ -129,7 +129,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
 .src .k{font-size:10px;font-weight:800;color:var(--fg3);text-transform:uppercase;margin-top:4px}
 .src .r{font-size:12px;color:var(--accent);font-weight:600}
 .src .x{font-size:11px;color:var(--fg3)}
-.src{position:relative}.src .tpl{position:absolute;right:8px;bottom:8px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg3);cursor:pointer;padding:0}.src .tpl:hover{color:var(--accent);border-color:var(--accent);background:#eef5fc}.src .tpl svg{width:15px;height:15px}.src .x,.src .r{padding-right:30px}
+.src{position:relative}.src .tpl{position:absolute;right:8px;bottom:8px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg3);cursor:pointer;padding:0}.src .tpl:hover{color:var(--accent);border-color:var(--accent);background:#eef5fc}.src .tpl svg{width:15px;height:15px}.src a.tpl.lnk{bottom:40px;text-decoration:none}.src .x,.src .r{padding-right:30px}
 .uplbox{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;margin-top:10px;border:1.5px dashed #b8c7d8;border-radius:14px;padding:12px 14px;background:#f8fbfe;text-align:center}
 .cst{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--hitbg);color:var(--hit)}.cst.w{background:var(--overbg);color:var(--over)}.cst.e{background:var(--missbg);color:var(--miss)}
 .pinm{max-width:380px}.pinm .pb{padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px}.pinm input[type=password]{font:inherit;font-size:15px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}.pinm .er{color:var(--miss);min-height:1em;font-size:12.5px}
@@ -1061,6 +1061,8 @@ if (typeof module !== "undefined") module.exports = P;
     if (k === "sp") { var b = new Blob(["\ufeff" + h.join(";") + ";\r\n"], {type: "text/csv;charset=utf-8"}), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = nm + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500); return; }
     if (typeof XLSX === "undefined") { alert("Alat Excel belum termuat. Periksa koneksi internet."); return; }
     var ws = XLSX.utils.aoa_to_sheet([h]), wb = XLSX.utils.book_new(); ws["!cols"] = h.map(function (x) { return {wch: Math.max(12, x.length + 2)}; }); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, nm + ".xlsx"); }
+  var RLINK = {wn: "https://reportservice.mitra10.com/report/report/Support%20Back/Report%20Stock%20WMS%20vs%20NAV", bl: "https://reportservice.mitra10.com/report/report/WMSSTORE/ReportStockWarehouseByLocation", ls: "https://reportservice.mitra10.com/report/report/WMSSTORE/ReportUpdateLocationStatus", cc: "https://reportservice.mitra10.com/report/report/WMSSTORE/ReportCycleCountSummary", mv: "https://reportservice.mitra10.com/report/report/WMSSTORE/ReportStockMovement"};
+  var LNI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>';
   function ageOf(s) { if (!s) return null; var d = new Date(s.slice(0, 10) + "T00:00:00"), t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((t - d) / 864e5); }
   function renderData() {
     var GRP = {wn: "ak", bl: "ak", ls: "cc", cc: "cc", sp: "mv", nt: "mv", mv: "mv"};
@@ -1072,6 +1074,7 @@ if (typeof module !== "undefined") module.exports = P;
       c.appendChild(el("div", {cls: "k"}, "Tarik report")); c.appendChild(el("div", {cls: "r"}, KN[k]));
       if (R) c.appendChild(el("div", {cls: "x"}, fn(R.rows.length) + " baris" + (k === "wn" && R.info.stockDate ? " · stock date " + fd(R.info.stockDate) : "") + ((k === "cc" || k === "mv") && R.info.from ? " · " + fd(R.info.from) + " – " + fd(R.info.to) : "")));
       var tb = el("button", {cls: "tpl", type: "button", title: "Unduh template " + KN[k], "aria-label": "Unduh template " + KN[k], "data-k": k}); tb.innerHTML = DLI; tb.onclick = function () { tplDl(this.getAttribute("data-k")); }; c.appendChild(tb);
+      if (RLINK[k]) { var lk = el("a", {cls: "tpl lnk", href: RLINK[k], target: "_blank", rel: "noopener", title: "Buka report " + KN[k], "aria-label": "Buka report " + KN[k]}); lk.innerHTML = LNI; c.appendChild(lk); }
       b.appendChild(c); });
   }
   function readFile(f) { if (/\.csv$/i.test(f.name)) return f.arrayBuffer().then(function (b) { var t; try { t = new TextDecoder("utf-8", {fatal: true}).decode(b); } catch (e) { t = new TextDecoder("windows-1252").decode(b); } return P.csv(t); });
