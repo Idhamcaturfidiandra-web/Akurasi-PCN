@@ -255,11 +255,12 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
     <div class="kpis" id="locKpi"></div>
     <div class="card">
       <h2>Lokasi per Zone</h2>
-      <p class="hint">Dari Report Update Location Status. Coverage CC = lokasi aktif berisi stok yang sudah di-cycle count (task DONE) dalam periode cycle count terpilih (tab Cycle Count) ÷ lokasi aktif berisi stok.</p>
+      <p class="hint">Dari Report Update Location Status (isi stok dari Stock Warehouse By Location). Coverage CC = lokasi aktif berisi stok yang sudah di-cycle count (task DONE) dalam periode cycle count terpilih (tab Cycle Count) ÷ lokasi aktif berisi stok.</p>
       <div class="tw" style="max-height:none"><table id="tZone"></table></div>
     </div>
     <div class="card">
       <h2>Daftar Lokasi</h2>
+      <p class="hint">Lokasi, Zone, Tipe, Status, Last Modified &amp; User dari Report Update Location Status. <b>Jumlah item</b> = jumlah item berbeda dengan stok &gt; 0 di lokasi tsb dan <b>Stock on hand</b> = total Stock On Hand Qty, keduanya dihitung dari Report Stock Warehouse By Location.</p>
       <div class="flt">
         <label>Category<select id="lCat"></select></label>
         <label>Zone<select id="lZone"></select></label>
@@ -615,7 +616,9 @@ if (typeof module !== "undefined") module.exports = P;
     var items = wn.map(function (r) { return {it: r[0], cat: r[1] || "(Tanpa category)", br: r[2] || "(Tanpa brand)", cs: r[3], bc: r[4], nm: r[5], uom: r[6], w: r[7], n: r[8], ab: r[9], ots: r[10], fi: r[11], fo: r[12], up: r[13], ew: r[14], en: r[15], sel: r[16], st: r[17] || (r[16] > 0 ? "OVER" : r[16] < 0 ? "MISS" : "HIT"), adj: r[18], la: r[19]}; });
     var byIt = {}; items.forEach(function (o) { byIt[o.it] = o; });
     var names = (RAW.bl && RAW.bl.names) || {};
-    var locInfo = {}; ls.forEach(function (r) { locInfo[r[0]] = {loc: r[0], z: r[1], zn: r[2], st: r[3], ty: r[4], lm: r[5], us: r[6], ci: r[7], soh: r[8]}; });
+    /* Jumlah item & Stock on hand per lokasi dihitung dari Stock Warehouse By Location; kolom lain tetap dari Update Location Status */
+    var blLoc = {}; bl.forEach(function (r) { var x = blLoc[r[0]] || (blLoc[r[0]] = {its: {}, soh: 0}); x.soh += r[5]; if (r[5] > 0) x.its[r[3]] = 1; });
+    var locInfo = {}; ls.forEach(function (r) { var b = blLoc[r[0]]; locInfo[r[0]] = {loc: r[0], z: r[1], zn: r[2], st: r[3], ty: r[4], lm: r[5], us: r[6], ci: bl.length ? (b ? Object.keys(b.its).length : 0) : r[7], soh: bl.length ? (b ? Math.round(b.soh * 1000) / 1000 : 0) : r[8]}; });
     var itLocs = {}, locItems = {};
     var IL = {};
     bl.forEach(function (r) { var k = r[3] + "|" + r[0], o = IL[k];
