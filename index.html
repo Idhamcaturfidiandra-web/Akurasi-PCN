@@ -278,12 +278,12 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
   <section id="v-mvx" hidden>
     <div class="kpis" id="mvKpi"></div>
     <div class="card">
-      <h2>Per Salesperson</h2>
-      <p class="hint">Item terjual per Salesperson Name (Sales Detail Report By Salesperson). Hanya nota bertipe <b>Cash&amp;Carry via Pickup &amp; Delivery</b>, <b>Cash&amp;Carry via Gudang Store</b>, dan <b>Bawa Langsung</b> (nota tidak ditemukan di Nota Penjualan By NAV). Status item: <b>Done</b> bila total Moved Qty ke X333 (Report Stock Movement) ≥ total terjual semua salesperson; <b>Kurang Move</b> bila kurang. Klik baris untuk melihat itemnya.</p>
-      <div class="tw" id="mvSpBox" style="max-height:460px"><table id="tMvSp"></table></div>
+      <h2 id="mvUH">Movement per User · Hari Ini</h2>
+      <p class="hint">Dihitung dari Report Stock Movement kolom <b>Moving By User</b>, tanggal hari ini (bila file tidak berisi hari ini, dipakai tanggal terakhir di file). Satu baris movement = 1 kali. Hanya Task <b>AUTO MOVING</b> / <b>MANUAL MOVING</b> (adjustment &amp; picking tidak dihitung). <b>To X333</b> = To Storage Location X333. <b>From TRANSD</b> = From Storage Location TRANSD. <b>From OV01 &amp; OV02</b> = From Storage Location OV01 atau OV02.</p>
+      <div class="tw fit"><table id="tMvU" style="width:100%;table-layout:fixed"></table></div>
     </div>
     <div class="card">
-      <h2>Detail Item per Salesperson</h2>
+      <h2>Detail Item Salesperson Movement X333</h2>
       <p class="hint">Qty Salesperson = total Quantity item oleh salesperson tsb. Total Terjual = total Quantity item itu oleh seluruh salesperson. Moved X333 = total Moved Qty dengan To Storage Location X333, hanya Task AUTO MOVING / MANUAL MOVING. Retur (Quantity minus) tidak dihitung. Selisih = Moved X333 − Total Terjual.</p>
       <div class="flt">
         <div><div class="small muted" style="font-weight:800;text-transform:uppercase;font-size:11px;margin-bottom:3px">Status</div><div class="chips" id="mvSt"></div></div>
@@ -296,6 +296,12 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
       </div>
       <div class="tbar"><div class="info" id="mvInfo"></div><div style="display:flex;gap:8px;align-items:center"><button class="btn" id="mvXls">⬇ Unduh Excel</button><button class="btn" id="mvPdf">⬇ Unduh PDF</button><div class="pager"><button class="btn" id="mvPrev">‹</button><span id="mvPg"></span><button class="btn" id="mvNext">›</button></div></div></div>
       <div class="tw"><table id="tMv"></table></div>
+    </div>
+    <div class="card">
+      <h2>Per Salesperson</h2>
+      <p class="hint">Item terjual per Salesperson Name (Sales Detail Report By Salesperson). Hanya nota bertipe <b>Cash&amp;Carry via Pickup &amp; Delivery</b>, <b>Cash&amp;Carry via Gudang Store</b>, dan <b>Bawa Langsung</b> (nota tidak ditemukan di Nota Penjualan By NAV). Status item: <b>Done</b> bila total Moved Qty ke X333 (Report Stock Movement) ≥ total terjual semua salesperson; <b>Kurang Move</b> bila kurang. Klik baris untuk melihat itemnya.</p>
+      <button class="btn" id="mvSpTog" type="button">▸ Tampilkan</button>
+      <div class="tw" id="mvSpBox" hidden style="max-height:460px;margin-top:10px"><table id="tMvSp"></table></div>
     </div>
   </section>
 
@@ -980,12 +986,29 @@ if (typeof module !== "undefined") module.exports = P;
     kp("", "Qty terjual", fn(qt), "nota C&C Pickup/Gudang + Bawa Langsung");
     kp("", "Qty moved X333", fn(I.reduce(function (t, x) { return t + x.mv; }, 0)), "untuk item terjual");
     kp("", "Salesperson", fn(Object.keys(D.rows.reduce(function (o, g) { o[g.sp] = 1; return o; }, {})).length), fn(D.skip) + " baris nota tipe lain & " + fn(D.ret) + " baris retur tidak dihitung");
+    /* movement per user (hari ini) */
+    var MR = RAW.mv ? RAW.mv.rows : [], td = nowS().slice(0, 10), dts = MR.map(function (r) { return r[0]; }).filter(Boolean).sort(), day = dts.indexOf(td) >= 0 ? td : dts[dts.length - 1] || td;
+    $("mvUH").textContent = "Movement per User · " + (day === td ? "Hari Ini (" + fd(day) + ")" : fd(day) + " (data terakhir)");
+    var U = {}; MR.forEach(function (r) { if (r[0] !== day) return; var tk = String(r[7] || "").toUpperCase().replace(/[^A-Z]/g, ""); if (tk !== "AUTOMOVING" && tk !== "MANUALMOVING") return;
+      var fr = String(r[4]).toUpperCase(), to = String(r[5]).toUpperCase(), a = to === "X333", b = fr === "TRANSD", c = fr === "OV01" || fr === "OV02"; if (!a && !b && !c) return;
+      var u = U[r[8] || "(tanpa user)"] || (U[r[8] || "(tanpa user)"] = {u: r[8] || "(tanpa user)", x: 0, t: 0, o: 0}); if (a) u.x++; if (b) u.t++; if (c) u.o++; });
+    var ur = Object.keys(U).map(function (k) { var u = U[k]; u.n = u.x + u.t + u.o; return u; }).sort(function (a, b) { return b.n - a.n || a.u.localeCompare(b.u); }), UT = ur.reduce(function (t, u) { t.x += u.x; t.t += u.t; t.o += u.o; t.n += u.n; return t; }, {x: 0, t: 0, o: 0, n: 0});
+    table($("tMvU"), [
+      {l: "User", f: function (u) { return u.u; }},
+      {l: "To X333", n: 1, f: function (u) { return u.x ? fn(u.x) : "-"; }},
+      {l: "From TRANSD", n: 1, f: function (u) { return u.t ? fn(u.t) : "-"; }},
+      {l: "From OV01 & OV02", n: 1, f: function (u) { return u.o ? fn(u.o) : "-"; }},
+      {l: "Total", n: 1, f: function (u) { return el("b", null, fn(u.n)); }}
+    ], ur, {empty: RAW.mv ? "Tidak ada movement To X333 / From TRANSD / From OV01 & OV02 pada tanggal ini." : "Belum ada data. Upload Report Stock Movement.", foot: ur.length ? ["Total", fn(UT.x), fn(UT.t), fn(UT.o), fn(UT.n)] : null});
+    [].forEach.call($("tMvU").querySelectorAll("thead th"), function (h, i) { h.style.textAlign = "center"; h.style.verticalAlign = "middle"; h.style.width = i ? "16%" : "36%"; });
+    [].forEach.call($("tMvU").querySelectorAll("tbody td:first-child, tfoot td:first-child"), function (d) { d.style.overflowWrap = "anywhere"; });
     /* per salesperson */
     var S = {}; D.rows.forEach(function (g) { var x = S[g.sp] || (S[g.sp] = {sp: g.sp, n: 0, q: 0, d: 0, k: 0}); x.n++; x.q += g.q; if (g.st === "Done") x.d++; else x.k++; });
     var sr = Object.keys(S).map(function (k) { return S[k]; }).sort(function (a, b) { return b.k - a.k || b.n - a.n; });
     var T = sr.reduce(function (t, x) { t.n += x.n; t.q += x.q; t.d += x.d; t.k += x.k; return t; }, {n: 0, q: 0, d: 0, k: 0});
     function goSp(sp, st) { MVF.sp = sp; MVF.cat = ""; MVF.cs = ""; MVF.st = {}; if (st) MVF.st[st] = 1; MVP = 0; renderMv(); var c = $("tMv").closest(".card"); setTimeout(function () { c.scrollIntoView({behavior: "smooth", block: "start"}); }, 30); }
     function lk(txt, sp, st, red) { var a = el("a", {href: "#", cls: "golink" + (red ? " red" : "")}, txt); a.onclick = function (e) { e.preventDefault(); e.stopPropagation(); goSp(sp, st); }; return a; }
+    $("mvSpTog").textContent = ($("mvSpBox").hidden ? "▸ Tampilkan " : "▾ Sembunyikan ") + fn(sr.length) + " salesperson";
     table($("tMvSp"), [
       {l: "Salesperson", f: function (r) { return r.sp; }},
       {l: "Jumlah item", n: 1, f: function (r) { return lk(fn(r.n), r.sp, ""); }},
@@ -1012,6 +1035,7 @@ if (typeof module !== "undefined") module.exports = P;
     table($("tMv"), MVCOL, R.slice(MVP * IPS, (MVP + 1) * IPS), {sort: MVS, onSort: renderMv, empty: "Tidak ada item sesuai filter."});
   }
   $("mvCs").onchange = function () { MVF.cs = this.value; MVP = 0; renderMv(); };
+  $("mvSpTog").onclick = function () { $("mvSpBox").hidden = !$("mvSpBox").hidden; renderMv(); };
   $("mvCat").onchange = function () { MVF.cat = this.value; MVP = 0; renderMv(); };
   $("mvSp").onchange = function () { MVF.sp = this.value; MVP = 0; renderMv(); };
   $("mvTy").onchange = function () { MVF.ty = this.value; MVP = 0; renderMv(); };
@@ -1147,10 +1171,10 @@ if (typeof module !== "undefined") module.exports = P;
       btn.classList.add("busy");
       var tabShot = box.tagName === "SECTION", W = tabShot ? 1320 : Math.max(box.scrollWidth, box.offsetWidth, mob ? 0 : 0);
       var wrap = el("div", {cls: tabShot ? "capwide" : "", style: "position:absolute;left:-99999px;top:0;background:#f2f5f9;padding:16px;box-sizing:content-box;width:" + W + "px"});
-      var I = RAW.wn && RAW.wn.info || {}, head = el("div", {style: "font:700 13px 'Segoe UI',sans-serif;color:#12355b;margin:0 0 10px"}, ((I.site || "10005 - MITRA10 PERCETAKAN NEGARA").toUpperCase().replace(/MITRA\s*10/, "MITRA 10") + " - KONTROL AKURASI BY LOCATION WMS - " + fd(nowS().slice(0, 10)).toUpperCase()));
+      var I = RAW.wn && RAW.wn.info || {}, head = el("div", {style: "font:700 13px 'Segoe UI',sans-serif;color:#12355b;margin:0 0 10px"}, ((I.site || "10005 - MITRA10 PERCETAKAN NEGARA").toUpperCase().replace(/MITRA\s*10/, "MITRA 10") + (TAB === "mvx" ? " - MOVEMENT X333 - " : " - KONTROL AKURASI BY LOCATION WMS - ") + fd(nowS().slice(0, 10)).toUpperCase()));
       var clone = box.cloneNode(true); clone.classList.add("capturing"); clone.style.margin = "0";
       var cb = clone.querySelector(".ccbar"); if (cb) { var pp = el("div", {style: "font:600 12px 'Segoe UI',sans-serif;color:#3d4b5a;margin:0 0 10px"}, "Periode cycle count: " + (CCF.from ? fd(CCF.from) : "awal") + " – " + (CCF.to ? fd(CCF.to) : "akhir")); cb.replaceWith(pp); }
-      [].forEach.call(clone.querySelectorAll(".camb,.pager,#nmTog,.tabshot"), function (x) { x.remove(); }); clone.hidden = false; [].forEach.call(clone.querySelectorAll(".card"), function (c) { if (c.querySelector("#nmBox[hidden]")) c.remove(); });
+      [].forEach.call(clone.querySelectorAll(".camb,.pager,#nmTog,#mvSpTog,.tabshot"), function (x) { x.remove(); }); clone.hidden = false; [].forEach.call(clone.querySelectorAll(".card"), function (c) { if (c.querySelector("#nmBox[hidden],#mvSpBox[hidden]")) c.remove(); });
       wrap.appendChild(head); wrap.appendChild(clone); document.body.appendChild(wrap);
       try {
         var w = wrap.scrollWidth, h = wrap.scrollHeight, MAX = mob ? 4096 * 4096 : 12000 * 12000;
