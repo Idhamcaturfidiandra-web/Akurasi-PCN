@@ -129,6 +129,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
 .src .k{font-size:10px;font-weight:800;color:var(--fg3);text-transform:uppercase;margin-top:4px}
 .src .r{font-size:12px;color:var(--accent);font-weight:600}
 .src .x{font-size:11px;color:var(--fg3)}
+.src{position:relative}.src .tpl{position:absolute;right:8px;bottom:8px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg3);cursor:pointer;padding:0}.src .tpl:hover{color:var(--accent);border-color:var(--accent);background:#eef5fc}.src .tpl svg{width:15px;height:15px}.src .x,.src .r{padding-right:30px}
 .uplbox{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;margin-top:10px;border:1.5px dashed #b8c7d8;border-radius:14px;padding:12px 14px;background:#f8fbfe;text-align:center}
 .cst{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--hitbg);color:var(--hit)}.cst.w{background:var(--overbg);color:var(--over)}.cst.e{background:var(--missbg);color:var(--miss)}
 .pinm{max-width:380px}.pinm .pb{padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px}.pinm input[type=password]{font:inherit;font-size:15px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}.pinm .er{color:var(--miss);min-height:1em;font-size:12.5px}
@@ -999,7 +1000,7 @@ if (typeof module !== "undefined") module.exports = P;
     function base(skip) { return D.rows.filter(function (g) { if (skip !== "cs" && MVF.cs !== "" && String(g.cs) !== MVF.cs) return false; if (skip !== "cat" && MVF.cat && g.cat !== MVF.cat) return false; if (skip !== "sp" && MVF.sp && g.sp !== MVF.sp) return false; if (skip !== "ty" && MVF.ty && !g.ty[MVF.ty]) return false; if (skip !== "st" && Object.keys(MVF.st).length && !MVF.st[g.st]) return false; for (var i = 0; i < q.length; i++) if (g.hay.indexOf(q[i]) < 0) return false; return true; }); }
     var bs = base("st"), ch = $("mvSt"); ch.innerHTML = "";
     ["Kurang Move", "Done"].forEach(function (s) { var b = el("button", {cls: "chip" + (MVF.st[s] ? " on" : ""), type: "button"}, s); b.appendChild(el("span", {cls: "n"}, fn(bs.filter(function (g) { return g.st === s; }).length))); b.onclick = function () { if (MVF.st[s]) delete MVF.st[s]; else MVF.st[s] = 1; MVP = 0; renderMv(); }; ch.appendChild(b); });
-    var css = [0, 0]; base("cs").forEach(function (g) { css[g.cs]++; }); fill($("mvCs"), [["0", "Non-consignment (" + fn(css[0]) + ")"], ["1", "Consignment (" + fn(css[1]) + ")"]], MVF.cs);
+    var css = [0, 0]; base("cs").forEach(function (g) { css[g.cs]++; }); fill($("mvCs"), [["0", "Retail/Catalog (" + fn(css[0]) + ")"], ["1", "Consignment (" + fn(css[1]) + ")"]], MVF.cs);
     var cts = {}; base("cat").forEach(function (g) { cts[g.cat] = (cts[g.cat] || 0) + 1; }); fill($("mvCat"), Object.keys(cts).sort().map(function (x) { return [x, (x || "(Tanpa category)") + " (" + fn(cts[x]) + ")"]; }), MVF.cat);
     var sps = {}; base("sp").forEach(function (g) { sps[g.sp] = (sps[g.sp] || 0) + 1; }); fill($("mvSp"), Object.keys(sps).sort().map(function (x) { return [x, x + " (" + fn(sps[x]) + ")"]; }), MVF.sp);
     var tys = {}; base("ty").forEach(function (g) { Object.keys(g.ty).forEach(function (t) { tys[t] = (tys[t] || 0) + 1; }); }); fill($("mvTy"), Object.keys(tys).sort().map(function (x) { return [x, x + " (" + fn(tys[x]) + ")"]; }), MVF.ty);
@@ -1019,14 +1020,14 @@ if (typeof module !== "undefined") module.exports = P;
   $("mvPrev").onclick = function () { MVP--; renderMv(); }; $("mvNext").onclick = function () { MVP++; renderMv(); };
   /* unduhan = isi tabel yang tampil (filter + urutan sama, semua halaman) */
   function mvOut(g) { return [g.cat || "-", g.sp, g.it, g.nm, g.npT || "-", g.tyT, g.q, g.tot, g.mv, g.sel, g.st]; }
-  function mvFilt() { var a = []; var st = Object.keys(MVF.st); a.push("Status: " + (st.length ? st.join(", ") : "Semua")); a.push("Item: " + (MVF.cs === "1" ? "Consignment" : MVF.cs === "0" ? "Non-consignment" : "Semua")); a.push("Category: " + (MVF.cat || "Semua")); a.push("Salesperson: " + (MVF.sp || "Semua")); a.push("Type nota: " + (MVF.ty || "Semua")); if (MVF.q) a.push("Cari: " + MVF.q);
+  function mvFilt() { var a = []; var st = Object.keys(MVF.st); a.push("Status: " + (st.length ? st.join(", ") : "Semua")); a.push("Item: " + (MVF.cs === "1" ? "Consignment" : MVF.cs === "0" ? "Retail/Catalog" : "Semua")); a.push("Category: " + (MVF.cat || "Semua")); a.push("Salesperson: " + (MVF.sp || "Semua")); a.push("Type nota: " + (MVF.ty || "Semua")); if (MVF.q) a.push("Cari: " + MVF.q);
     var c = MVCOL.filter(function (x) { return x.k === MVS.k; })[0]; a.push("Urut: " + (c ? c.l : "") + (MVS.d > 0 ? " A-Z" : " Z-A")); return a.join(" · "); }
-  function mvTitle() { var I = RAW.wn && RAW.wn.info || {}; return (I.site || "10005 - MITRA10 PERCETAKAN NEGARA").toUpperCase().replace(/MITRA\s*10/, "MITRA 10") + " - MOVEMENT X333 PER SALESPERSON" + (MVF.cs === "1" ? " (CONSIGNMENT)" : MVF.cs === "0" ? " (NON-CONSIGNMENT)" : "") + " - " + fd(nowS().slice(0, 10)).toUpperCase(); }
+  function mvTitle() { var I = RAW.wn && RAW.wn.info || {}; return (I.site || "10005 - MITRA10 PERCETAKAN NEGARA").toUpperCase().replace(/MITRA\s*10/, "MITRA 10") + " - MOVEMENT X333 PER SALESPERSON" + (MVF.cs === "1" ? " (CONSIGNMENT)" : MVF.cs === "0" ? " (RETAIL/CATALOG)" : "") + " - " + fd(nowS()).toUpperCase().replace(/ (\d{2}:\d{2})$/, " PUKUL $1"); }
   $("mvXls").onclick = function () {
     if (typeof XLSX === "undefined") { alert("Alat Excel belum termuat. Periksa koneksi internet."); return; }
     var head = MVCOL.map(function (c) { return c.l; }), ws = XLSX.utils.aoa_to_sheet([head].concat(MVCUR.map(mvOut))), wb = XLSX.utils.book_new();
     ws["!cols"] = [22, 26, 13, 46, 24, 30, 10, 10, 10, 9, 13].map(function (w) { return {wch: w}; }); ws["!autofilter"] = {ref: "A1:K" + (MVCUR.length + 1)};
-    XLSX.utils.book_append_sheet(wb, ws, "Detail per Salesperson"); XLSX.writeFile(wb, "Movement_X333_per_Salesperson" + (MVF.cs === "1" ? "_Consignment" : MVF.cs === "0" ? "_NonConsignment" : "") + "_" + nowS().slice(0, 10) + ".xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Detail per Salesperson"); XLSX.writeFile(wb, "Movement_X333_per_Salesperson" + (MVF.cs === "1" ? "_Consignment" : MVF.cs === "0" ? "_Retail_Catalog" : "") + "_" + nowS().replace(" ", "_").replace(":", ".") + ".xlsx");
   };
   $("mvPdf").onclick = function () {
     var J = window.jspdf && window.jspdf.jsPDF; if (!J) { alert("Alat PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman."); return; }
@@ -1047,12 +1048,19 @@ if (typeof module !== "undefined") module.exports = P;
     });
     var n = doc.internal.getNumberOfPages();
     for (var i = 1; i <= n; i++) { doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(120, 130, 140); doc.text("Halaman " + i + " dari " + n, W - mg, H - 5, {align: "right"}); doc.text("Kontrol Akurasi WMS vs NAV · dicetak " + fd(nowS()), mg, H - 5); }
-    doc.save("Movement_X333_per_Salesperson" + (MVF.cs === "1" ? "_Consignment" : MVF.cs === "0" ? "_NonConsignment" : "") + "_" + nowS().slice(0, 10) + ".pdf");
+    doc.save("Movement_X333_per_Salesperson" + (MVF.cs === "1" ? "_Consignment" : MVF.cs === "0" ? "_Retail_Catalog" : "") + "_" + nowS().replace(" ", "_").replace(":", ".") + ".pdf");
   };
 
   /* ---------- DATA & UPLOAD ---------- */
   var KN = {wn: "Report Stock WMS vs NAV", bl: "Stock Warehouse By Location", ls: "Update Location Status", cc: "Cycle Count Summary", sp: "Sales Detail By Salesperson", nt: "Nota Penjualan By NAV", mv: "Report Stock Movement"};
   var KT = {wn: "WMS vs NAV", bl: "Stok per Lokasi", ls: "Status Lokasi", cc: "Cycle Count", sp: "Sales Salesperson", nt: "Nota NAV", mv: "Stock Movement"};
+  /* template kosong (hanya judul kolom) per report */
+  var TPL = {"wn": ["Site ID", "Site Name", "Region", "Category", "Brand", "Item Consign", "Item No", "Barcode No", "Item Name", "UOM", "STOCK WMS", "STOCK NAV", "Adj. Breakage Weekly", "OTS NP", "Failed Transfer Inbound", "Failed Transfer Outbound", "Unposted Sales Qty NAV", "ENDING STOCK WMS", "ENDING STOCK NAV", "SELISIH WMS VS NAV", "HIT/MISS", "Adjust Qty NAV", "Last Adj Posting Date"], "bl": ["Location Id", "Location Name", "Storage Location Id", "Zone Id", "Storage Location Active Status", "Item Category Description", "Item No", "Barcode No", "Item Description", "Base UOM", "Lot No", "Item Type", "Batch No", "Received Date", "Expired Date", "Stock On Hand Qty", "Available Qty", "To Be Picked Qty", "Picked Qty Base UOM"], "ls": ["Zone Id", "Zone Name", "Storage Location Id", "Storage Location Name", "Storage Location Active Status", "Storage Location Type Name", "Last Modified Date", "Audit User Name", "Length Capacity", "Width Capacity", "Height Capacity", "Weight Capacity", "Volume Capacity", "Count Of Item", "Sum Of Stock On Hand Qty", "Order No"], "cc": ["Location", "Remarks", "Task Order No.", "Task Status", "Planning Date", "Ext. Document No.", "Cycle Count Type", "Storage Location", "Item Number", "Item Description", "Item Category", "UOM", "Qty System", "Qty Counted", "Matched/Not Matched", "Assigned User", "Created By"], "mv": ["Date", "Time", "Barcode No", "Item No", "Item Description", "Base UOM", "Lot No", "Item Type", "Batch No", "From Storage Location", "To Storage Location", "Moved Qty", "Task", "Moving By User"], "nt": ["No.", "Order Date", "Promised Delivery Date", "Promised Payment Date", "Type", "Status", "Expired Date", "Receipt No.", "DP Receipt No.", "Actual DP Amount", "Transaction Amount", "Store No.", "Sell-to Customer No.", "Sell-to Customer Name", "Phone No.", "Cellular Phone", "No. Printed"], "sp": ["Receipt Date", "Store No", "Store Name", "Membercard No", "Membercard Schema", "Receipt No", "Item No", "Item Name", "Quantity", "Amount Inculde Sales", "Amount Exclude Sales", "Category", "Sub Category", "Function", "Sub Function", "Master Brand", "Brand", "Source Type Name", "Time", "Master Type Brand", "Salesperson ID", "Salesperson Name", "Nota Penjualan No"]};
+  var DLI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>';
+  function tplDl(k) { var h = TPL[k], nm = "Template_" + KN[k].replace(/[^A-Za-z0-9]+/g, "_");
+    if (k === "sp") { var b = new Blob(["\ufeff" + h.join(";") + ";\r\n"], {type: "text/csv;charset=utf-8"}), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = nm + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500); return; }
+    if (typeof XLSX === "undefined") { alert("Alat Excel belum termuat. Periksa koneksi internet."); return; }
+    var ws = XLSX.utils.aoa_to_sheet([h]), wb = XLSX.utils.book_new(); ws["!cols"] = h.map(function (x) { return {wch: Math.max(12, x.length + 2)}; }); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, nm + ".xlsx"); }
   function ageOf(s) { if (!s) return null; var d = new Date(s.slice(0, 10) + "T00:00:00"), t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((t - d) / 864e5); }
   function renderData() {
     var GRP = {wn: "ak", bl: "ak", ls: "cc", cc: "cc", sp: "mv", nt: "mv", mv: "mv"};
@@ -1063,6 +1071,7 @@ if (typeof module !== "undefined") module.exports = P;
       c.appendChild(el("div", {cls: "d"}, R && R.info.pulled ? fd(R.info.pulled).replace(/ (\d{2}:\d{2})$/, " pukul $1") : R && R.info.from ? (R.info.from === R.info.to ? fd(R.info.from) : fd(R.info.from) + " – " + fd(R.info.to)) : "Belum ada data"));
       c.appendChild(el("div", {cls: "k"}, "Tarik report")); c.appendChild(el("div", {cls: "r"}, KN[k]));
       if (R) c.appendChild(el("div", {cls: "x"}, fn(R.rows.length) + " baris" + (k === "wn" && R.info.stockDate ? " · stock date " + fd(R.info.stockDate) : "") + ((k === "cc" || k === "mv") && R.info.from ? " · " + fd(R.info.from) + " – " + fd(R.info.to) : "")));
+      var tb = el("button", {cls: "tpl", type: "button", title: "Unduh template " + KN[k], "aria-label": "Unduh template " + KN[k], "data-k": k}); tb.innerHTML = DLI; tb.onclick = function () { tplDl(this.getAttribute("data-k")); }; c.appendChild(tb);
       b.appendChild(c); });
   }
   function readFile(f) { if (/\.csv$/i.test(f.name)) return f.arrayBuffer().then(function (b) { var t; try { t = new TextDecoder("utf-8", {fatal: true}).decode(b); } catch (e) { t = new TextDecoder("windows-1252").decode(b); } return P.csv(t); });
