@@ -34,8 +34,10 @@ button.kpi{cursor:pointer}button.kpi:hover{background:#f6f9fc}
 .kpi.hit{border-top-color:var(--hit)}.kpi.over{border-top-color:var(--over)}.kpi.miss{border-top-color:var(--miss)}.kpi.big{border-top-color:var(--teal)}.kpi.big .v{color:var(--teal);font-size:30px}
 .flt{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 12px}
 .flt label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;color:var(--fg3);text-transform:uppercase;letter-spacing:.03em}
-.flt select,.flt input[type=search]{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:150px;max-width:260px;color:var(--fg)}
+.flt select,.flt input[type=search],.flt input[type=text]{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:150px;max-width:260px;color:var(--fg)}
 .flt input[type=search]{min-width:230px}
+.btn.msel{min-width:170px;justify-content:space-between;font-weight:700;background:#fff}.btn.msel.on{background:#fff6d6;border-color:#e8c65a}
+.lpop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(15,35,60,.18);width:min(340px,92vw);padding:10px;display:flex;flex-direction:column;gap:8px}.lpop input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px}.lpop .ll{max-height:300px;overflow:auto;display:flex;flex-direction:column}.lpop label{display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 2px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--fg)}.lpop label span.c{margin-left:auto;color:var(--fg3);font-size:11.5px}.lpop .bt{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:8px}.lpop .bt .pri{margin-left:auto}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--fg2);border-radius:999px;padding:6px 12px;cursor:pointer}
 .chip .n{font-weight:600;color:var(--fg3);margin-left:4px}
@@ -151,7 +153,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
 @media(max-width:900px){.cols2{grid-template-columns:minmax(0,1fr)}.kpi .v{font-size:21px}.kpi.big .v{font-size:25px}}
 @media(max-width:600px){.wrap{padding:10px 10px 30px}.hero{padding:16px}.hero h1{font-size:20px}
   nav.tabs{overflow-x:auto;flex-wrap:nowrap}nav.tabs button{white-space:nowrap;padding:8px 11px;font-size:13px}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.flt label,.flt select,.flt input[type=search]{width:100%;max-width:none;min-width:0}.flt label{flex:1 1 45%}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.flt label,.flt select,.flt input[type=search],.flt input[type=text]{width:100%;max-width:none;min-width:0}.flt label{flex:1 1 45%}
   .card{padding:13px}.tw{max-height:none}}
 </style>
 </head>
@@ -186,6 +188,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
     <button data-t="loc">Lokasi</button>
     <button data-t="cc">Cycle Count</button>
     <button data-t="mvx">Movement X333</button>
+    <button data-t="adj" id="tabAdj" hidden>Adjust WMS</button>
   </nav>
 
   <!-- RINGKASAN -->
@@ -276,6 +279,30 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
   </section>
 
   <!-- MOVEMENT X333 -->
+  <section id="v-adj" hidden>
+    <div class="note" id="adjWarn" hidden></div>
+    <div class="kpis" id="adjKpi"></div>
+    <div class="card">
+      <h2>Template Upload Adjustment WMS</h2>
+      <p class="hint">Konsep: jumlah <b>Stock On Hand</b> item di semua lokasi Stock Warehouse By Location harus sama dengan <b>ENDING STOCK NAV</b> (Report Stock WMS vs NAV). Yang di-adjust sistem <b>WMS</b>: selisih = Ending NAV − total SOH semua lokasi. <b>Adjustment Quantity di template = qty akhir lot</b> setelah disesuaikan (mis. SOH lot 25 dikurangi 13 → Adjustment Quantity 12). Item consignment tidak ikut. Item Number &amp; Unit Of Measure dari Report Stock WMS vs NAV; Lot Number &amp; Storage Location Id dari Stock Warehouse By Location.<br><b>Tidak boleh ada stok minus</b>: pengurangan per lot tidak melebihi SOH lot tsb (Available Qty dipakai dulu, baru qty yang teralokasi). Item dengan Ending NAV minus tidak di-adjust.<br><b>Lokasi khusus</b> (OV01 / OV02 / Display Detail): bila dipilih, adjustment hanya di lokasi tsb. <b>Minus</b>: hanya dari lokasi yang masuk pilihan <b>Lokasi khusus</b>, <b>Zone Id</b> dan <b>Lokasi yang di-adjust</b> (Zone Id dari Stock Warehouse By Location); urutan rak (C/D/W…) → OV/ECOMMERCE/STAGE → lokasi X lain, lot terlama dulu. <b>TRANSD dan X333 tidak bisa di-adjust</b> (stoknya tetap dihitung di total SOH).<br><b>Plus</b>: ke <b>Lokasi tujuan Plus</b> bila diisi (memakai lot terbaru item tsb), atau otomatis ke lot/lokasi item yang sudah ada di lokasi terpilih (rak dulu, lot terbaru). Yang tidak bisa dialokasikan penuh masuk kartu Perlu Dicek Manual.</p>
+      <div class="flt">
+        <div><div class="small muted" style="font-weight:800;text-transform:uppercase;font-size:11px;margin-bottom:3px">Lokasi khusus</div><div class="chips" id="adjSp"></div></div>
+        <label>Zone Id<button class="btn msel" id="adjZone" type="button">Semua zone</button></label>
+        <label>Lokasi yang di-adjust<button class="btn msel" id="adjLoc" type="button">Semua lokasi</button></label>
+        <label>Lokasi tujuan Plus<input id="adjPlus" type="text" list="adjPlusL" placeholder="Otomatis (lokasi item yg sudah ada)"><datalist id="adjPlusL"></datalist></label>
+        <label>Arah<select id="adjDir"><option value="">Semua</option><option value="plus">Plus (WMS ditambah)</option><option value="minus">Minus (WMS dikurangi)</option></select></label>
+        <label>Category<select id="adjCat"></select></label>
+        <label>Cari<input id="adjQ" type="search" placeholder="Item no / nama / lokasi / lot"></label>
+      </div>
+      <div class="tbar"><div class="info" id="adjInfo"></div><div style="display:flex;gap:8px;align-items:center"><button class="btn" id="adjLock" type="button" title="Sembunyikan lagi tab Adjust WMS">🔒 Kunci tab</button><button class="btn pri" id="adjXls">⬇ Unduh Template Adjustment</button><div class="pager"><button class="btn" id="adjPrev">‹</button><span id="adjPg"></span><button class="btn" id="adjNext">›</button></div></div></div>
+      <div class="tw"><table id="tAdj"></table></div>
+    </div>
+    <div class="card">
+      <h2>Perlu Dicek Manual</h2>
+      <p class="hint">Item yang selisihnya tidak bisa dialokasikan penuh ke lot/lokasi: Available Qty di lokasi kurang dari qty yang harus dikurangi, atau item tidak ada di Stock Warehouse By Location (lot &amp; lokasi harus diisi manual). Bagian yang bisa dialokasikan tetap masuk template.</p>
+      <div class="tw" style="max-height:520px"><table id="tAdjM"></table></div>
+    </div>
+  </section>
   <section id="v-mvx" hidden>
     <div class="kpis" id="mvKpi"></div>
     <div class="card">
@@ -367,7 +394,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
 
 <div class="shotbg" id="pinOv" hidden>
   <div class="shotm pinm" role="dialog" aria-label="PIN edit">
-    <div class="shoth"><b>PIN edit</b><button class="btn" id="pinX" type="button">✕</button></div>
+    <div class="shoth"><b id="pinTtl">PIN edit</b><button class="btn" id="pinX" type="button">✕</button></div>
     <div class="pb">
       <div id="pinNote">Masukkan PIN untuk menyimpan data ke database online.</div>
       <input type="password" id="pinIn" autocomplete="off" placeholder="PIN">
@@ -441,12 +468,12 @@ var P = (function () {
   function bl(aoa) {
     var H = findHead(aoa, ["Storage Location Id", "Item No", "Stock On Hand Qty"]); if (!H) return null;
     var h = H.h, t = titleText(aoa, H.i), c = function (n) { return col(h, n); };
-    var C = {loc: c("Storage Location Id"), z: c("Zone Id"), st: c("Storage Location Active Status"), cat: c("Item Category Description"), it: c("Item No"), nm: c("Item Description"), uom: c("Base UOM"), ty: c("Item Type"), rd: c("Received Date"), soh: c("Stock On Hand Qty"), av: c("Available Qty"), tp: c("To Be Picked Qty"), pk: c("Picked Qty Base UOM")};
+    var C = {loc: c("Storage Location Id"), z: c("Zone Id"), st: c("Storage Location Active Status"), cat: c("Item Category Description"), it: c("Item No"), nm: c("Item Description"), uom: c("Base UOM"), ty: c("Item Type"), rd: c("Received Date"), soh: c("Stock On Hand Qty"), av: c("Available Qty"), tp: c("To Be Picked Qty"), pk: c("Picked Qty Base UOM"), lot: c("Lot No")};
     var rows = [], names = {};
     for (var j = H.i + 1; j < aoa.length; j++) {
       var r = aoa[j] || [], it = norm(r[C.it]), loc = norm(r[C.loc]); if (!it || !loc) continue;
       var ty = norm(r[C.ty]).toUpperCase();
-      rows.push([loc, norm(r[C.z]), norm(r[C.st]).toUpperCase(), it, ty === "CONSIGNMENT" ? "C" : ty === "CATALOG" ? "K" : "R", r3(num(r[C.soh])), r3(num(r[C.av])), r3(num(r[C.tp])), iso(r[C.rd])]);
+      rows.push([loc, norm(r[C.z]), norm(r[C.st]).toUpperCase(), it, ty === "CONSIGNMENT" ? "C" : ty === "CATALOG" ? "K" : "R", r3(num(r[C.soh])), r3(num(r[C.av])), r3(num(r[C.tp])), iso(r[C.rd]), norm(r[C.lot])]);
       if (!names[it]) names[it] = [norm(r[C.nm]), norm(r[C.cat]), norm(r[C.uom])];
     }
     return {kind: "bl", rows: rows, names: names, info: {pulled: pulled(t)}};
@@ -568,12 +595,17 @@ if (typeof module !== "undefined") module.exports = P;
   function rpc(fn, args) { return fetch(CLOUD.url + "/rest/v1/rpc/" + fn, {method: "POST", headers: sbH(), body: JSON.stringify(args)}).then(function (r) { return r.ok ? r.text().then(function (t) { try { return JSON.parse(t); } catch (x) { return t; } }) : sbErr(r); }, net); }
   function sget(q) { return fetch(CLOUD.url + "/rest/v1/" + q, {headers: sbH(), cache: "no-store"}).then(function (r) { return r.ok ? r.json() : sbErr(r); }, net); }
   try { PIN = sessionStorage.getItem("akr_pin") || localStorage.getItem("akr_pin") || ""; } catch (e) {}
-  function pinUI() { var b = $("btnPin"); if (!b) return; b.hidden = !CLOUD; b.textContent = PIN ? "🔓 Mode edit · Kunci" : "🔒 PIN edit"; }
+  function pinUI() { var b = $("btnPin"); if (!b) return; b.hidden = false; b.textContent = PIN ? "🔓 Mode edit · Kunci" : "🔒 PIN edit"; }
   function setPin(p, rem) { PIN = p || ""; try { if (PIN) { sessionStorage.setItem("akr_pin", PIN); if (rem) localStorage.setItem("akr_pin", PIN); else localStorage.removeItem("akr_pin"); } else { sessionStorage.removeItem("akr_pin"); localStorage.removeItem("akr_pin"); } } catch (e) {} pinUI(); }
-  function askPin(note) { return new Promise(function (res, rej) { pinWait = {res: res, rej: rej}; $("pinNote").textContent = note || "Masukkan PIN untuk menyimpan data ke database online."; $("pinErr").textContent = ""; $("pinIn").value = ""; $("pinOv").hidden = false; setTimeout(function () { $("pinIn").focus(); }, 30); }); }
+  var ADJOK = false; try { ADJOK = sessionStorage.getItem("akr_adj_ok") === "1"; } catch (e) {}
+  function adjUnlock(on) { ADJOK = !!on; try { if (on) sessionStorage.setItem("akr_adj_ok", "1"); else sessionStorage.removeItem("akr_adj_ok"); } catch (e) {} var t = $("tabAdj"); if (t) t.hidden = !ADJOK; if (ADJOK && typeof showTab === "function") showTab("adj"); else if (!ADJOK && TAB === "adj") showTab("sum"); }
+  var PINMODE = "edit";
+  function askPin(note, mode) { PINMODE = "edit"; return new Promise(function (res, rej) { pinWait = {res: res, rej: rej}; $("pinNote").textContent = note || "Masukkan PIN untuk menyimpan data ke database online."; $("pinErr").textContent = ""; $("pinIn").value = ""; $("pinOv").hidden = false; setTimeout(function () { $("pinIn").focus(); }, 30); }); }
   function pinClose(ok) { $("pinOv").hidden = true; var w = pinWait; pinWait = null; if (w) { if (ok) w.res(PIN); else { var e = new Error("PIN dibatalkan"); e.code = "cancel"; w.rej(e); } } }
   function pinGo() { var p = $("pinIn").value.trim(); if (!p) { $("pinErr").textContent = "Isi PIN terlebih dahulu."; return; } $("pinOk").disabled = true; $("pinErr").textContent = "Memeriksa…";
-    rpc("check_pin", {p_pin: p}).then(function (ok) { $("pinOk").disabled = false; if (ok !== true) { $("pinErr").textContent = "PIN salah."; $("pinIn").select(); return; } setPin(p, $("pinRem").checked); pinClose(true); }, function (e) { $("pinOk").disabled = false; $("pinErr").textContent = "Tidak bisa memeriksa PIN (" + e.message + ")."; }); }
+    if (!CLOUD) { $("pinOk").disabled = false; adjUnlock(true); pinClose(false); return; } /* preview: tanpa server */
+    rpc("check_pin", {p_pin: p}).then(function (ok) { if (ok === true) { $("pinOk").disabled = false; setPin(p, $("pinRem").checked); pinClose(true); return; }
+      return rpc("check_adj_pin", {p_pin: p}).catch(function () { return false; }).then(function (a) { $("pinOk").disabled = false; if (a === true) { adjUnlock(true); pinClose(false); return; } $("pinErr").textContent = "PIN salah."; $("pinIn").select(); }); }, function (e) { $("pinOk").disabled = false; $("pinErr").textContent = "Tidak bisa memeriksa PIN (" + e.message + ")."; }); }
   function needPin() { return PIN ? Promise.resolve(PIN) : askPin("PIN diperlukan untuk menyimpan data ke database online supaya semua orang melihat data terbaru."); }
   function batchId() { return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
   async function cloudPut(r, onp) {
@@ -679,8 +711,8 @@ if (typeof module !== "undefined") module.exports = P;
 
   /* ---------- tab ---------- */
   var TAB = "sum";
-  function showTab(t) { TAB = t; [].forEach.call($("tabs").children, function (b) { b.classList.toggle("on", b.dataset.t === t); }); ["sum", "item", "prio", "loc", "cc", "mvx"].forEach(function (k) { $("v-" + k).hidden = k !== t; }); render(); try { history.replaceState(null, "", "#" + t); } catch (e) {} }
-  $("tabs").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) showTab(b.dataset.t); });
+  function showTab(t) { if (t === "adj" && !ADJOK) t = "sum"; TAB = t; [].forEach.call($("tabs").children, function (b) { b.classList.toggle("on", b.dataset.t === t); }); ["sum", "item", "prio", "loc", "cc", "mvx", "adj"].forEach(function (k) { $("v-" + k).hidden = k !== t; }); render(); try { history.replaceState(null, "", "#" + t); } catch (e) {} }
+  $("tabs").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b && b.dataset.t) showTab(b.dataset.t); });
 
   /* ---------- header ---------- */
   function renderHead() {
@@ -985,6 +1017,138 @@ if (typeof module !== "undefined") module.exports = P;
     {k: "sel", l: "Selisih", n: 1, v: function (g) { return g.sel; }, f: function (g) { return el("span", {cls: g.sel < 0 ? "neg" : ""}, fs(g.sel)); }},
     {k: "st", l: "Status", v: function (g) { return (g.st === "Kurang Move" ? 0 : 1) + g.sp; }, f: function (g) { return el("span", {cls: "pill " + (g.st === "Done" ? "g" : "r")}, g.st); }}
   ];
+  /* ---------- Adjust WMS: samakan Ending WMS dengan Ending NAV ---------- */
+  var ADJ_NO = {TRANSD: 1, X333: 1}; /* lokasi yang tidak boleh di-adjust */
+  function adjPri(loc) { var L = String(loc).toUpperCase(); if (/^X/.test(L)) return 3; if (L === "TRANSD") return 2; if (/^(OV\d|ECOMMERCE|STAGE)/.test(L)) return 1; return 0; }
+  var ADF = {dir: "", cat: "", q: "", locs: [], zones: [], sp: [], plus: ""}, ADP = 0, ADCUR = [];
+  try { var sv = JSON.parse(localStorage.getItem("akr_adj_loc") || "{}"); ADF.locs = sv.locs || []; ADF.zones = sv.zones || []; ADF.sp = sv.sp || []; ADF.plus = sv.plus || ""; } catch (e) {}
+  var ADJ_SP = [["OV01", "OV01"], ["OV02", "OV02"], ["DISPLAY DETAIL", "Display Detail"]];
+  function spOk(loc, zone) { if (!ADF.sp.length) return true; var L = String(loc).toUpperCase(), Z = String(zone || "").toUpperCase(); return ADF.sp.some(function (k) { return k === "DISPLAY DETAIL" ? Z === "DISPLAY DETAIL" : L === k; }); }
+  function adjSave() { try { localStorage.setItem("akr_adj_loc", JSON.stringify({locs: ADF.locs, zones: ADF.zones, sp: ADF.sp, plus: ADF.plus})); } catch (e) {} }
+  function adjModel() {
+    var wn = RAW.wn ? RAW.wn.rows : [], bl = RAW.bl ? RAW.bl.rows : [], B = {}, noLot = bl.length > 0 && bl.every(function (r) { return !r[9]; });
+    bl.forEach(function (r) { (B[r[3]] = B[r[3]] || []).push(r); });
+    var LS = {}, ZS = {}, ZL = {}; ADF.locs.forEach(function (l) { LS[l] = 1; }); ADF.zones.forEach(function (z) { ZS[z] = 1; }); bl.forEach(function (r) { ZL[r[0]] = r[1] || "(Tanpa zone)"; });
+    var okLoc = function (l) { if (ADJ_NO[String(l).toUpperCase()]) return false; if (!spOk(l, ZL[l])) return false; return (!ADF.locs.length || LS[l]) && (!ADF.zones.length || ZS[ZL[l] || "(Tanpa zone)"]); }, PL = (ADF.plus || "").trim().toUpperCase(); if (ADJ_NO[PL]) PL = "";
+    var rows = [], man = [], r3_ = function (n) { return Math.round(n * 1000) / 1000; };
+    wn.forEach(function (w) {
+      if (w[3]) return; /* consignment tidak ikut */
+      var L = B[w[0]] || [], tot = r3_(L.reduce(function (t, r) { return t + r[5]; }, 0)), en = w[15], d = r3_(en - tot); if (!d) return;
+      var base = {it: w[0], nm: w[5], cat: w[1] || "(Tanpa category)", uom: w[6], ew: w[14], en: en, tot: tot, d: d};
+      function add(r, loc, lot, q, soh) { var o = Object.create(base); o.lot = lot; o.loc = loc; o.q = r3_(q); o.soh = soh; o.after = r3_(soh + q); o.pri = adjPri(loc); o.zone = ZL[loc] || (r ? r[1] : "") || "-"; rows.push(o); }
+      function manual(got, rest, why) { var o = Object.create(base); o.got = r3_(got); o.rest = r3_(rest); o.why = why; man.push(o); }
+      if (en < 0) { manual(0, d, "Ending NAV minus: tidak di-adjust (stok WMS tidak boleh minus)"); return; }
+      if (d < 0) {
+        var need = -d, C = L.filter(function (r) { return r[5] > 0 && okLoc(r[0]); }).sort(function (a, b) { return adjPri(a[0]) - adjPri(b[0]) || String(a[8]).localeCompare(String(b[8])) || a[0].localeCompare(b[0]); }), take = C.map(function () { return 0; });
+        C.forEach(function (r, i) { if (need <= 1e-9) return; var t = Math.min(Math.max(0, r[6]), r[5], need); take[i] += t; need -= t; }); /* Available dulu */
+        C.forEach(function (r, i) { if (need <= 1e-9) return; var t = Math.min(r[5] - take[i], need); if (t > 0) { take[i] += t; need -= t; } }); /* lalu sisa SOH (teralokasi) */
+        var got = 0; C.forEach(function (r, i) { if (take[i] > 1e-9) { add(r, r[0], r[9] || "", -take[i], r[5]); got += take[i]; } });
+        if (need > 1e-9) manual(-got, -need, !L.length ? "Item tidak ada di Stock Warehouse By Location" : "SOH di lokasi terpilih tidak cukup untuk dikurangi (stok tidak boleh minus; TRANSD & X333 tidak bisa di-adjust)");
+      } else {
+        if (PL) { var lots = L.filter(function (r) { return r[9]; }).sort(function (a, b) { return String(b[8]).localeCompare(String(a[8])); }); if (!lots.length) { manual(0, d, "Item tidak punya Lot Number di Stock Warehouse By Location: isi lot manual"); return; }
+          var ex = L.filter(function (r) { return r[0].toUpperCase() === PL && r[9] === lots[0][9]; })[0]; add(null, PL, lots[0][9], d, ex ? ex[5] : 0); return; }
+        var P = L.filter(function (r) { return okLoc(r[0]); }).sort(function (a, b) { return adjPri(a[0]) - adjPri(b[0]) || String(b[8]).localeCompare(String(a[8])) || a[0].localeCompare(b[0]); });
+        if (P.length) add(P[0], P[0][0], P[0][9] || "", d, P[0][5]); else manual(0, d, L.length ? "Item tidak ada di lokasi terpilih (TRANSD & X333 tidak bisa di-adjust): isi Lokasi tujuan Plus" : "Item tidak ada di Stock Warehouse By Location: isi Lokasi tujuan Plus atau lot & lokasi manual");
+      }
+    });
+    return {rows: rows, man: man, noLot: noLot};
+  }
+  function adjOk(o, skip) { if (skip !== "dir" && ADF.dir && (ADF.dir === "plus" ? o.d < 0 : o.d > 0)) return false; if (skip !== "cat" && ADF.cat && o.cat !== ADF.cat) return false;
+    if (ADF.q) { var h = (o.it + " " + o.nm + " " + (o.loc || "") + " " + (o.lot || "")).toLowerCase(); if (ADF.q.toLowerCase().split(/\s+/).some(function (w) { return w && h.indexOf(w) < 0; })) return false; } return true; }
+  function adjLocBtn() { var b = $("adjLoc"), n = ADF.locs.length; b.textContent = (n ? (n === 1 ? ADF.locs[0] : n + " lokasi dipilih") : "Semua lokasi") + " ▾"; b.classList.toggle("on", n > 0);
+    var z = $("adjZone"), m = ADF.zones.length; z.textContent = (m ? (m === 1 ? ADF.zones[0] : m + " zone dipilih") : "Semua zone") + " ▾"; z.classList.toggle("on", m > 0); }
+  var LPOP = null; function lpClose() { if (LPOP) { LPOP.remove(); LPOP = null; } }
+  document.addEventListener("mousedown", function (e) { if (LPOP && !LPOP.contains(e.target) && e.target !== LPOP._b) lpClose(); });
+  function msPop(btn, V, cnt, unit, cur, ph, onApply) { if (LPOP && LPOP._b === btn) { lpClose(); return; } lpClose();
+    var sel = {}; cur.forEach(function (l) { sel[l] = 1; });
+    var p = el("div", {cls: "lpop"}), q = el("input", {type: "search", placeholder: ph}), box = el("div", {cls: "ll"}), bt = el("div", {cls: "bt"}); p._b = btn;
+    function shown() { var s2 = q.value.trim().toUpperCase(); return V.filter(function (v) { return !s2 || v.toUpperCase().indexOf(s2) >= 0; }); }
+    function apply() { onApply(V.filter(function (v) { return sel[v]; })); }
+    function draw() { box.innerHTML = ""; var sh = shown(); sh.slice(0, 600).forEach(function (v) { var l = el("label"), c = el("input", {type: "checkbox"}); c.checked = !!sel[v]; c.onchange = function () { if (this.checked) sel[v] = 1; else delete sel[v]; apply(); }; l.appendChild(c); l.appendChild(el("span", null, v)); l.appendChild(el("span", {cls: "c"}, fn(cnt[v]) + " " + unit)); box.appendChild(l); }); if (sh.length > 600) box.appendChild(el("div", {cls: "small muted"}, "+" + fn(sh.length - 600) + " lagi, ketik untuk mencari")); }
+    var pa = el("button", {cls: "btn", type: "button"}, "Pilih semua yang tampil"), cl = el("button", {cls: "btn", type: "button"}, "Hapus"), ok = el("button", {cls: "btn pri", type: "button"}, "Selesai");
+    pa.onclick = function () { shown().forEach(function (v) { sel[v] = 1; }); draw(); apply(); }; cl.onclick = function () { sel = {}; draw(); apply(); }; ok.onclick = lpClose;
+    q.oninput = draw; p.appendChild(q); p.appendChild(box); bt.appendChild(pa); bt.appendChild(cl); bt.appendChild(ok); p.appendChild(bt); document.body.appendChild(p); LPOP = p; draw();
+    var r = btn.getBoundingClientRect(); p.style.left = Math.max(8, Math.min(r.left, innerWidth - p.offsetWidth - 8)) + "px"; p.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - p.offsetHeight - 8)) + "px"; q.focus(); }
+  function adjSrc() { var bl = RAW.bl ? RAW.bl.rows : [], wn = RAW.wn ? RAW.wn.rows : [], cs = {}; wn.forEach(function (w) { if (w[3]) cs[w[0]] = 1; }); return bl.filter(function (r) { return !cs[r[3]] && r[5] > 0 && !ADJ_NO[String(r[0]).toUpperCase()]; }); }
+  $("adjLoc").onclick = function () { var cnt = {}, ZS = {}; ADF.zones.forEach(function (z) { ZS[z] = 1; });
+    adjSrc().forEach(function (r) { if (ADF.zones.length && !ZS[r[1] || "(Tanpa zone)"]) return; if (!spOk(r[0], r[1])) return; cnt[r[0]] = (cnt[r[0]] || 0) + 1; });
+    var V = Object.keys(cnt).sort(function (a, b) { return adjPri(a) - adjPri(b) || a.localeCompare(b); });
+    msPop(this, V, cnt, "lot", ADF.locs, "Cari Location ID, mis. W01 / OV02 / X333", function (sel) { ADF.locs = sel; adjSave(); ADP = 0; renderAdj(); }); };
+  $("adjZone").onclick = function () { var cnt = {}; adjSrc().forEach(function (r) { var z = r[1] || "(Tanpa zone)"; cnt[z] = (cnt[z] || 0) + 1; });
+    var V = Object.keys(cnt).sort();
+    msPop(this, V, cnt, "lot", ADF.zones, "Cari Zone Id", function (sel) { ADF.zones = sel; adjSave(); ADP = 0; renderAdj(); }); };
+  function renderAdj() {
+    var A = adjModel(), k = $("adjKpi"); k.innerHTML = "";
+    var W = $("adjWarn"); W.hidden = !(A.noLot || !RAW.wn || !RAW.bl); W.textContent = !RAW.wn || !RAW.bl ? "Upload Report Stock WMS vs NAV dan Stock Warehouse By Location untuk membuat template adjustment." : "Data Stock Warehouse By Location tersimpan dari versi lama (tanpa Lot Number). Upload ulang Stock Warehouse By Location agar kolom Lot Number terisi.";
+    var spc = {}, src = adjSrc(); ADJ_SP.forEach(function (x) { spc[x[0]] = 0; }); src.forEach(function (r) { var L = String(r[0]).toUpperCase(); if (L === "OV01" || L === "OV02") spc[L]++; if (String(r[1]).toUpperCase() === "DISPLAY DETAIL") spc["DISPLAY DETAIL"]++; });
+    var sc = $("adjSp"); sc.innerHTML = ""; ADJ_SP.forEach(function (x) { var on = ADF.sp.indexOf(x[0]) >= 0, b = el("button", {cls: "chip" + (on ? " on" : ""), type: "button", title: "Hanya adjust di " + x[1]}, x[1]); b.appendChild(el("span", {cls: "n"}, fn(spc[x[0]]) + " lot")); b.onclick = function () { if (on) ADF.sp = ADF.sp.filter(function (v) { return v !== x[0]; }); else ADF.sp = ADF.sp.concat([x[0]]); adjSave(); ADP = 0; renderAdj(); }; sc.appendChild(b); });
+    adjLocBtn(); if (document.activeElement !== $("adjPlus")) $("adjPlus").value = ADF.plus || "";
+    var dl = $("adjPlusL"); if (!dl.childNodes.length && RAW.ls) RAW.ls.rows.forEach(function (r) { if (!ADJ_NO[String(r[0]).toUpperCase()]) dl.appendChild(el("option", {value: r[0]})); });
+    var R = A.rows.filter(function (o) { return adjOk(o); }), MN = A.man.filter(function (o) { return adjOk(o); });
+    var its = {}, ip = {}, im = {}; R.forEach(function (o) { its[o.it] = 1; if (o.q > 0) ip[o.it] = 1; else im[o.it] = 1; }); MN.forEach(function (o) { its[o.it] = 1; });
+    var qp = R.reduce(function (t, o) { return t + (o.q > 0 ? o.q : 0); }, 0), qm = R.reduce(function (t, o) { return t + (o.q < 0 ? o.q : 0); }, 0);
+    function kp(cls, l, v, s, go) { var b = el(go ? "button" : "div", {cls: "kpi " + cls}); if (go) { b.type = "button"; b.onclick = go; } b.appendChild(el("div", {cls: "l"}, l)); b.appendChild(el("div", {cls: "v"}, v)); if (s) b.appendChild(el("div", {cls: "s"}, s)); k.appendChild(b); }
+    function goDir(d) { ADF.dir = d; ADP = 0; renderAdj(); }
+    kp("big", "Item selisih", fn(Object.keys(its).length), "Total SOH lokasi ≠ Ending NAV", function () { goDir(""); });
+    kp("", "Baris template", fn(R.length), "baris siap diunduh", null);
+    kp("hit", "Plus (WMS ditambah)", "+" + fn(qp), fn(Object.keys(ip).length) + " item", function () { goDir("plus"); });
+    kp("miss", "Minus (WMS dikurangi)", fn(qm), fn(Object.keys(im).length) + " item", function () { goDir("minus"); });
+    kp("over", "Perlu dicek manual", fn(MN.length), "item tidak teralokasi penuh", function () { var t = $("tAdjM"); if (t) t.closest(".card").scrollIntoView({behavior: "smooth", block: "start"}); });
+    $("adjDir").value = ADF.dir; if ($("adjQ").value !== ADF.q) $("adjQ").value = ADF.q;
+    var cats = {}; A.rows.concat(A.man).forEach(function (o) { if (adjOk(o, "cat")) cats[o.cat] = (cats[o.cat] || 0) + 1; });
+    var cs = $("adjCat"); cs.innerHTML = ""; cs.appendChild(el("option", {value: ""}, "Semua")); Object.keys(cats).sort().forEach(function (c) { cs.appendChild(el("option", {value: c}, c + " (" + fn(cats[c]) + ")")); }); cs.value = ADF.cat;
+    R.sort(function (a, b) { return a.it.localeCompare(b.it) || a.pri - b.pri || a.loc.localeCompare(b.loc); }); ADCUR = R;
+    var pages = Math.max(1, Math.ceil(R.length / IPS)); if (ADP >= pages) ADP = pages - 1;
+    $("adjInfo").textContent = fn(R.length) + " baris · " + fn(Object.keys(ip).length + Object.keys(im).length) + " item · qty +" + fn(qp) + " / " + fn(qm);
+    $("adjPg").textContent = (ADP + 1) + " / " + pages; $("adjPrev").disabled = ADP <= 0; $("adjNext").disabled = ADP >= pages - 1;
+    function qcell(v) { return el("b", {style: "color:" + (v > 0 ? "var(--hit)" : "var(--miss)")}, (v > 0 ? "+" : "") + fn(v)); }
+    table($("tAdj"), [
+      {l: "Item Number", f: function (o) { return o.it; }},
+      {l: "Item Name", w: 1, f: function (o) { return o.nm; }},
+      {l: "Lot Number", f: function (o) { return el("span", {style: "white-space:nowrap"}, o.lot || "–"); }},
+      {l: "Storage Location Id", f: function (o) { return o.loc; }},
+      {l: "Zone Id", f: function (o) { return o.zone; }},
+      {l: "Unit Of Measure", f: function (o) { return o.uom; }},
+      {l: "Adjustment Quantity", n: 1, f: function (o) { return el("b", null, fn(o.after)); }},
+      {l: "SOH lot sekarang", n: 1, f: function (o) { return fn(o.soh); }},
+      {l: "Perubahan", n: 1, f: function (o) { return qcell(o.q); }},
+      {l: "Total SOH lokasi", n: 1, f: function (o) { return fn(o.tot); }},
+      {l: "Ending NAV", n: 1, f: function (o) { return fn(o.en); }},
+      {l: "Ending WMS", n: 1, f: function (o) { return fn(o.ew); }}
+    ], R.slice(ADP * IPS, (ADP + 1) * IPS), {empty: RAW.wn && RAW.bl ? "Tidak ada item untuk di-adjust sesuai filter." : "Belum ada data."});
+    MN.sort(function (a, b) { return Math.abs(b.rest) - Math.abs(a.rest); });
+    table($("tAdjM"), [
+      {l: "Item Number", f: function (o) { return o.it; }},
+      {l: "Item Name", w: 1, f: function (o) { return o.nm; }},
+      {l: "UOM", f: function (o) { return o.uom; }},
+      {l: "Total SOH lokasi", n: 1, f: function (o) { return fn(o.tot); }},
+      {l: "Ending NAV", n: 1, f: function (o) { return fn(o.en); }},
+      {l: "Harus di-adjust", n: 1, f: function (o) { return qcell(o.d); }},
+      {l: "Masuk template", n: 1, f: function (o) { return o.got ? fn(o.got) : "-"; }},
+      {l: "Sisa manual", n: 1, f: function (o) { return qcell(o.rest); }},
+      {l: "Keterangan", w: 1, f: function (o) { return o.why; }}
+    ], MN, {empty: "Semua selisih bisa dialokasikan ke lot/lokasi."});
+  }
+  $("adjPlus").onchange = function () { ADF.plus = this.value.trim().toUpperCase(); if (ADJ_NO[ADF.plus]) { alert(ADF.plus + " tidak bisa dipakai untuk adjustment. Pilih lokasi lain."); ADF.plus = ""; } this.value = ADF.plus; adjSave(); ADP = 0; renderAdj(); };
+  $("adjDir").onchange = function () { ADF.dir = this.value; ADP = 0; renderAdj(); };
+  $("adjCat").onchange = function () { ADF.cat = this.value; ADP = 0; renderAdj(); };
+  var adjT; $("adjQ").oninput = function () { var v = this.value; clearTimeout(adjT); adjT = setTimeout(function () { ADF.q = v.trim(); ADP = 0; renderAdj(); }, 250); };
+  $("adjLock").onclick = function () { adjUnlock(false); };
+  if (!CLOUD) { $("btnPin").hidden = false; $("btnPin").onclick = function () { askPin("Masukkan PIN untuk mengaktifkan mode edit (upload data).").catch(function () {}); }; $("pinOk").onclick = pinGo; $("pinCancel").onclick = $("pinX").onclick = function () { pinClose(false); }; $("pinIn").onkeydown = function (e) { if (e.key === "Enter") pinGo(); if (e.key === "Escape") pinClose(false); }; }
+  if (ADJOK) $("tabAdj").hidden = false;
+  $("adjPrev").onclick = function () { if (ADP > 0) { ADP--; renderAdj(); } };
+  $("adjNext").onclick = function () { ADP++; renderAdj(); };
+  $("adjXls").onclick = function () {
+    if (typeof XLSX === "undefined") { alert("Alat Excel belum termuat. Periksa koneksi internet."); return; }
+    if (!ADCUR.length) { alert("Tidak ada baris untuk diunduh."); return; }
+    var rs = "", aoa = [["Item Number", "Lot Number", "Storage Location Id", "Unit Of Measure", "Adjustment Quantity", "Reason"]].concat(ADCUR.map(function (o) { return [o.it, o.lot, o.loc, o.uom, o.after, rs]; })); /* Adjustment Quantity = qty akhir lot */
+    var ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new(); ws["!cols"] = [14, 24, 20, 16, 20, 24].map(function (w) { return {wch: w}; });
+    for (var r = 1; r < aoa.length; r++) for (var c = 0; c < 4; c++) { var a = XLSX.utils.encode_cell({r: r, c: c}); if (ws[a]) { ws[a].t = "s"; ws[a].v = String(ws[a].v); ws[a].z = "@"; } }
+    XLSX.utils.book_append_sheet(wb, ws, "ToBeAdjustment");
+    var d = new Date(), p2 = function (n) { return String(n).padStart(2, "0"); };
+    XLSX.writeFile(wb, "TemplateUploadAdjustment_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + ".xlsx");
+  };
+
   function renderMv() {
     var D = mvModel(), k = $("mvKpi"); k.innerHTML = "";
     function kp(cls, l, v, s, go) { var b = el(go ? "button" : "div", {cls: "kpi " + cls}); if (go) { b.type = "button"; b.onclick = go; } b.appendChild(el("div", {cls: "l"}, l)); b.appendChild(el("div", {cls: "v"}, v)); if (s) b.appendChild(el("div", {cls: "s"}, s)); k.appendChild(b); }
@@ -1143,7 +1307,7 @@ if (typeof module !== "undefined") module.exports = P;
   $("file").onchange = function () { if (this.files.length) handle([].slice.call(this.files)); this.value = ""; };
   var dp = $("drop"); dp.ondragover = function (e) { e.preventDefault(); dp.classList.add("over"); }; dp.ondragleave = function () { dp.classList.remove("over"); }; dp.ondrop = function (e) { e.preventDefault(); dp.classList.remove("over"); if (e.dataTransfer.files.length) handle([].slice.call(e.dataTransfer.files)); };
 
-  function render() { if (!M) return; if (TAB === "sum") renderSum(); else if (TAB === "item") renderItem(); else if (TAB === "prio") renderPrio(); else if (TAB === "loc") renderLoc(); else if (TAB === "mvx") renderMv(); else renderCC(); renderData(); }
+  function render() { if (!M) return; if (TAB === "sum") renderSum(); else if (TAB === "item") renderItem(); else if (TAB === "prio") renderPrio(); else if (TAB === "loc") renderLoc(); else if (TAB === "mvx") renderMv(); else if (TAB === "adj") renderAdj(); else renderCC(); renderData(); }
 
   /* aturan kartu: disembunyikan, muncul sebagai popup saat judul kartu disentuh/diarahkan */
   (function () {
@@ -1220,7 +1384,7 @@ if (typeof module !== "undefined") module.exports = P;
     ["wn", "bl", "ls", "cc", "sp", "nt", "mv"].forEach(function (k) { if (saved[k] && saved[k].rows && saved[k].rows.length) RAW[k] = saved[k]; });
     build(); renderHead();
     var rf = cloudInit(); if (rf) rf();
-    var h = location.hash.slice(1); showTab(["sum", "item", "prio", "loc", "cc", "mvx"].indexOf(h) >= 0 ? h : "sum");
+    var h = location.hash.slice(1); showTab(["sum", "item", "prio", "loc", "cc", "mvx", "adj"].indexOf(h) >= 0 ? h : "sum");
   });
 })();
 </script>
