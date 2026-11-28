@@ -103,6 +103,7 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
 .stack{display:flex;height:10px;border-radius:6px;overflow:hidden;min-width:120px;background:#edf1f5;gap:2px}
 .stack i{display:block;height:100%}
 .stack .h{background:var(--hit)}.stack .o{background:var(--over)}.stack .m{background:var(--miss)}
+#tBrand th{white-space:normal;line-height:1.2;vertical-align:bottom}#tBrand th,#tBrand td{padding-left:7px;padding-right:7px}#tBrand td:first-child{white-space:nowrap}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--fg2);margin:0 0 8px}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
 .cols2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}
@@ -203,7 +204,8 @@ tfoot td{position:sticky;bottom:0;background:#f4f7fb;font-weight:800;border-top:
       </div>
       <div class="card">
         <h2>Brand dengan selisih terbanyak</h2>
-        <p class="hint">10 brand non-consignment dengan item OVER + MISS terbanyak.</p>
+        <p class="hint">10 brand non-consignment dengan item selisih (OVER + MISS) terbanyak, urut dari Total Selisih terbanyak. Akurasi = HIT ÷ All Item; Selisih % = (OVER + MISS) ÷ All Item. Saat Category dipilih, semua angka hanya menghitung item brand di category tersebut. Klik baris untuk melihat itemnya.</p>
+        <div class="flt" style="margin:0 0 10px"><label>Category<select id="bCat"></select></label></div>
         <div class="tw" style="max-height:none"><table id="tBrand"></table></div>
       </div>
     </div>
@@ -738,30 +740,41 @@ if (typeof module !== "undefined") module.exports = P;
     kp("", "Item consignment", fn(cs), "tidak dihitung di akurasi", function () { IF.cs = "1"; IF.st = {}; showTab("item"); });
     /* per category */
     var C = {}; N.forEach(function (x) { var c = C[x.cat] || (C[x.cat] = {cat: x.cat, t: 0, h: 0, o: 0, m: 0, sp: 0, sn: 0}); c.t++; if (x.st === "HIT") c.h++; else if (x.st === "OVER") { c.o++; c.sp += x.sel; } else { c.m++; c.sn += x.sel; } });
-    var rows = Object.keys(C).map(function (k) { return C[k]; }).sort(function (a, b) { return a.h / a.t - b.h / b.t; });
+    var rows = Object.keys(C).map(function (k) { return C[k]; }).sort(function (a, b) { return String(a.cat || "").localeCompare(String(b.cat || "")); });
     table($("tCat"), [
       {k: "cat", l: "Category", f: function (r) { return r.cat; }},
       {k: "t", l: "Item", n: 1, f: function (r) { return fn(r.t); }},
       {k: "h", l: "HIT", n: 1, f: function (r) { return fn(r.h); }},
       {k: "o", l: "OVER", n: 1, f: function (r) { return fn(r.o); }},
       {k: "m", l: "MISS", n: 1, f: function (r) { return fn(r.m); }},
-      {k: "a", l: "Akurasi", n: 1, f: function (r) { return el("b", null, pct(r.h, r.t)); }},
-      {k: "bar", l: "Komposisi", f: function (r) { return stack(r.h, r.o, r.m); }}
-    ], rows, {onRow: function (r) { IF.cat = r.cat; goItem(["OVER", "MISS"]); }, foot: ["Total", fn(N.length), fn(h), fn(o), fn(m), pct(h, N.length), ""]});
-    var B = {}; N.forEach(function (x) { if (x.st === "HIT") return; var b = B[x.br] || (B[x.br] = {br: x.br, o: 0, m: 0, t: 0}); if (x.st === "OVER") b.o++; else b.m++; });
-    N.forEach(function (x) { if (B[x.br]) B[x.br].t++; });
-    var br = Object.keys(B).map(function (k) { return B[k]; }).sort(function (a, b) { return (b.o + b.m) - (a.o + a.m); }).slice(0, 10);
-    table($("tBrand"), [
-      {l: "Brand", f: function (r) { return r.br; }},
-      {l: "OVER", n: 1, f: function (r) { return fn(r.o); }},
-      {l: "MISS", n: 1, f: function (r) { return fn(r.m); }},
-      {l: "Akurasi", n: 1, f: function (r) { return pct(r.t - r.o - r.m, r.t); }}
-    ], br, {onRow: function (r) { IF.br = r.br; goItem(["OVER", "MISS"]); }});
+      {k: "a", l: "Akurasi", n: 1, f: function (r) { return el("b", null, pct(r.h, r.t)); }}
+    ], rows, {onRow: function (r) { IF.cat = r.cat; goItem(["OVER", "MISS"]); }, foot: ["Total", fn(N.length), fn(h), fn(o), fn(m), pct(h, N.length)]});
+    fill($("bCat"), Object.keys(C).sort().map(function (c) { return [c, c]; }), BCAT, "Semua category"); BCAT = $("bCat").value;
+    renderBrand(N);
     var S = N.filter(function (x) { return x.st !== "HIT"; }), cp = $("sumComp"); cp.innerHTML = "";
     [["OTS NP", "ots"], ["Adj. Breakage Weekly", "ab"], ["Failed Transfer Inbound", "fi"], ["Failed Transfer Outbound", "fo"], ["Unposted Sales NAV", "up"], ["Ada Adjust Qty NAV", "adj"]].forEach(function (p) {
       var c = S.filter(function (x) { return x[p[1]]; }).length; var d = el("div", {cls: "kpi"}); d.appendChild(el("div", {cls: "l"}, p[0])); d.appendChild(el("div", {cls: "v", style: "font-size:20px"}, fn(c))); d.appendChild(el("div", {cls: "s"}, "item")); cp.appendChild(d); });
   }
 
+  var BCAT = "";
+  function renderBrand(N) {
+    var L = N.filter(function (x) { return !BCAT || x.cat === BCAT; });
+    var B = {}; L.forEach(function (x) { var k = x.br; var b = B[k] || (B[k] = {br: x.br, o: 0, m: 0, t: 0}); b.t++; if (x.st === "OVER") b.o++; else if (x.st === "MISS") b.m++; });
+    var br = Object.keys(B).map(function (k) { return B[k]; })
+      .filter(function (b) { return b.o + b.m > 0; }).sort(function (a, b) { return (b.o + b.m) - (a.o + a.m); }).slice(0, 10);
+    table($("tBrand"), [
+      {l: "Brand", f: function (r) { return r.br; }},
+      {l: "All Item", n: 1, f: function (r) { return fn(r.t); }},
+      {l: "HIT", n: 1, f: function (r) { return fn(r.t - r.o - r.m); }},
+      {l: "OVER", n: 1, f: function (r) { return fn(r.o); }},
+      {l: "MISS", n: 1, f: function (r) { return fn(r.m); }},
+      {l: "Total Selisih", n: 1, f: function (r) { return el("b", null, fn(r.o + r.m)); }},
+      {l: "Akurasi", n: 1, f: function (r) { return el("b", null, pct(r.t - r.o - r.m, r.t)); }},
+      {l: "Selisih %", n: 1, f: function (r) { return el("b", {style: "color:var(--bad,#c0392b)"}, pct(r.o + r.m, r.t)); }}
+    ], br, {onRow: function (r) { IF.br = r.br; IF.cat = BCAT; goItem(["OVER", "MISS"]); }});
+    if (!br.length) $("tBrand").innerHTML = '<tbody><tr><td style="padding:14px;color:var(--fg3)">Tidak ada brand dengan selisih di category ini.</td></tr></tbody>';
+  }
+  $("bCat").onchange = function () { BCAT = this.value; renderBrand(nonCs()); };
   /* ---------- ITEM SELISIH ---------- */
   var IF = {st: {OVER: 1, MISS: 1}, cat: "", br: "", cs: "0", q: ""}, IS = {k: "abs", d: -1}, IP = 0, IPS = 100, ICUR = [];
   function goItem(st) { IF.st = {}; st.forEach(function (s) { IF.st[s] = 1; }); IF.cs = "0"; IP = 0; showTab("item"); }
